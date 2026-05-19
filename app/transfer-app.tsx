@@ -106,6 +106,31 @@ export default function TransferApp() {
     setMessage("Copied.");
   }
 
+  async function downloadFile(file: StoredFile) {
+    setBusy(file.id);
+    setMessage("");
+
+    const response = await fetch(`/api/files/${file.id}`);
+    setBusy("");
+
+    if (!response.ok) {
+      const data = await response.json();
+      setMessage(data.error || "Could not download file.");
+      return;
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   async function remove(kind: "memos" | "files", id: string) {
     setBusy(id);
     setMessage("");
@@ -202,9 +227,14 @@ export default function TransferApp() {
               {formatDate(item.created_at)} · {formatBytes(item.size)}
             </div>
             <div className="actions">
-              <a className="button secondary" href={`/api/files/${item.id}`}>
+              <button
+                className="secondary"
+                disabled={busy === item.id}
+                onClick={() => downloadFile(item)}
+                type="button"
+              >
                 Download
-              </a>
+              </button>
               <button
                 className="danger"
                 disabled={busy === item.id}
